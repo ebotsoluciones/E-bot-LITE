@@ -18,7 +18,6 @@ from notifications import (
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def generar_horarios() -> list[str]:
-    """Genera lista de horarios según config."""
     h_ini = datetime.strptime(HORA_INICIO, "%H:%M")
     h_fin = datetime.strptime(HORA_FIN,    "%H:%M")
     horarios = []
@@ -31,7 +30,6 @@ def generar_horarios() -> list[str]:
 
 
 def normalizar_hora(texto: str):
-    """Convierte '9', '9:00', '09:00' → '09:00'. None si inválido."""
     texto = texto.strip().replace(".", ":").replace("-", ":")
     if ":" not in texto:
         texto += ":00"
@@ -63,16 +61,14 @@ def agregar_turno(nombre: str, telefono: str, fecha: str, hora: str):
         "creado_en": datetime.now().isoformat(),
     })
     guardar_turnos(turnos)
-    # Notificaciones
     notif_paciente_confirmado(telefono, nombre, fecha, hora)
     notif_admin_nuevo_turno(nombre, telefono, fecha, hora)
 
 def cancelar_turno(telefono: str, fecha: str, hora: str):
-    turnos   = obtener_turnos()
-    turno    = next((t for t in turnos if t["telefono"] == telefono and t["fecha"] == fecha and t["hora"] == hora), None)
+    turnos    = obtener_turnos()
+    turno     = next((t for t in turnos if t["telefono"] == telefono and t["fecha"] == fecha and t["hora"] == hora), None)
     restantes = [t for t in turnos if not (t["telefono"] == telefono and t["fecha"] == fecha and t["hora"] == hora)]
     guardar_turnos(restantes)
-    # Notificaciones
     if turno:
         notif_paciente_cancelado(telefono, turno["nombre"], fecha, hora)
         notif_admin_cancelado(turno["nombre"], telefono, fecha, hora)
@@ -110,6 +106,16 @@ def horarios_libres(fecha: str) -> list[str]:
     bloqueos = {b["hora"] for b in _obtener_bloqueos() if b["fecha"] == fecha}
     ocupados = turnos | bloqueos
     return [h for h in generar_horarios() if h not in ocupados]
+
+def horarios_para_bloquear(fecha: str) -> list[str]:
+    """Horarios que aún no están bloqueados para esa fecha."""
+    bloqueados = {b["hora"] for b in _obtener_bloqueos() if b["fecha"] == fecha}
+    return [h for h in generar_horarios() if h not in bloqueados]
+
+def horarios_para_bloquear(fecha: str) -> list[str]:
+    """Retorna horarios que aún no están bloqueados para esa fecha."""
+    bloqueados = {b["hora"] for b in _obtener_bloqueos() if b["fecha"] == fecha}
+    return [h for h in generar_horarios() if h not in bloqueados]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
