@@ -83,7 +83,13 @@ def procesar(numero, body, resp):
         msg.body(MENU_ADMIN)
         return
 
-    if not MODO_TEST and numero in ADMINS and estado != "ADMIN":
+    if not MODO_TEST and numero in ADMINS and estado not in [
+        "ADMIN", "ADMIN_NUEVO_NOMBRE", "ADMIN_NUEVO_TEL",
+        "ADMIN_NUEVO_FECHA", "ADMIN_NUEVO_HORA",
+        "ADMIN_CANCEL_FECHA", "ADMIN_CANCEL_HORA",
+        "BLOQUEAR_FECHA", "BLOQUEAR_HORA",
+        "MENSAJE",
+    ]:
         set_user_state(numero, "estado", "ADMIN")
         msg.body(MENU_ADMIN)
         return
