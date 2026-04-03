@@ -2,14 +2,14 @@
 app.py — servidor Flask E-BOT LITE 🦙
 "Llama que llama... por wasap"
 """
-
 import os
 from flask import Flask, request
+from panel.routes import panel_bp
 from twilio.twiml.messaging_response import MessagingResponse
 from handlers import procesar
 
 app = Flask(__name__)
-
+app.register_blueprint(panel_bp)
 @app.route("/", methods=["GET"])
 def health():
     return "🦙 E-BOT LITE — OK", 200
