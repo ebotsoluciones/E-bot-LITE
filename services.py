@@ -12,6 +12,7 @@ from notifications import (
     notif_admin_cancelado,
 )
 
+HISTORIAL_FILE = "historial"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # HORARIOS
@@ -28,7 +29,6 @@ def generar_horarios() -> list[str]:
         actual += timedelta(minutes=INTERVALO)
     return horarios
 
-
 def normalizar_hora(texto: str):
     texto = texto.strip().replace(".", ":").replace("-", ":")
     if ":" not in texto:
@@ -42,6 +42,17 @@ def normalizar_hora(texto: str):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# HISTORIAL (todos los turnos, incluso cancelados)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def obtener_historial() -> list[dict]:
+    return cargar_json(HISTORIAL_FILE).get("data", [])
+
+def _guardar_historial(datos: list[dict]):
+    guardar_json(HISTORIAL_FILE, {"data": datos})
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # TURNOS
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -52,15 +63,22 @@ def guardar_turnos(turnos: list[dict]):
     guardar_json(TURNOS_FILE, {"data": turnos})
 
 def agregar_turno(nombre: str, telefono: str, fecha: str, hora: str):
-    turnos = obtener_turnos()
-    turnos.append({
+    turno = {
         "nombre":    nombre,
         "telefono":  telefono,
         "fecha":     fecha,
         "hora":      hora,
         "creado_en": datetime.now().isoformat(),
-    })
+    }
+    # Guardar en turnos activos
+    turnos = obtener_turnos()
+    turnos.append(turno)
     guardar_turnos(turnos)
+    # Guardar en historial
+    historial = obtener_historial()
+    historial.append(turno)
+    _guardar_historial(historial)
+    # Notificaciones
     notif_paciente_confirmado(telefono, nombre, fecha, hora)
     notif_admin_nuevo_turno(nombre, telefono, fecha, hora)
 
@@ -108,11 +126,6 @@ def horarios_libres(fecha: str) -> list[str]:
     return [h for h in generar_horarios() if h not in ocupados]
 
 def horarios_para_bloquear(fecha: str) -> list[str]:
-    """Horarios que aún no están bloqueados para esa fecha."""
-    bloqueados = {b["hora"] for b in _obtener_bloqueos() if b["fecha"] == fecha}
-    return [h for h in generar_horarios() if h not in bloqueados]
-
-def horarios_para_bloquear(fecha: str) -> list[str]:
     """Retorna horarios que aún no están bloqueados para esa fecha."""
     bloqueados = {b["hora"] for b in _obtener_bloqueos() if b["fecha"] == fecha}
     return [h for h in generar_horarios() if h not in bloqueados]
@@ -131,3 +144,6 @@ def guardar_mensaje(nombre: str, telefono: str, mensaje: str):
         "fecha":    datetime.now().isoformat(),
     })
     guardar_json(MENSAJES_FILE, data)
+
+def limpiar_mensajes():
+    guardar_json(MENSAJES_FILE, {"data": []})
